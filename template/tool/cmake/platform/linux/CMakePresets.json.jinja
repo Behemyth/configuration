@@ -15,6 +15,10 @@
 				"type": "equals",
 				"lhs": "${hostSystemName}",
 				"rhs": "Linux"
+			},
+			"cacheVariables": {
+				"CMAKE_C_FLAGS_INIT": "-Wall -Wextra -Wpedantic",
+				"CMAKE_CXX_FLAGS_INIT": "-Wall -Wextra -Wpedantic"
 			}
 		},
 		{
