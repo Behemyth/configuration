@@ -33,6 +33,52 @@
 				"CMAKE_C_COMPILER": "gcc",
 				"CMAKE_CXX_COMPILER": "g++"
 			}
+		},
+		{
+			"name": "linux-ninja-gcc-release",
+			"inherits": [
+				"cppython-release",
+				"linux-ninja-gcc"
+			],
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_CONFIGURATION_TYPES": {
+					"type": "STRING",
+					"value": "Release"
+				}
+			}
+		},
+		{
+			"name": "linux-ninja-gcc-development",
+			"inherits": [
+				"cppython-debug",
+				"linux-ninja-gcc"
+			],
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_CONFIGURATION_TYPES": {
+					"type": "STRING",
+					"value": "Development"
+				},
+				"CMAKE_MAP_IMPORTED_CONFIG_DEVELOPMENT": {
+					"type": "STRING",
+					"value": "Debug"
+				}
+			}
+		},
+		{
+			"name": "linux-ninja-gcc-debug",
+			"inherits": [
+				"cppython-debug",
+				"linux-ninja-gcc"
+			],
+			"binaryDir": "${sourceDir}/build/${presetName}",
+			"cacheVariables": {
+				"CMAKE_CONFIGURATION_TYPES": {
+					"type": "STRING",
+					"value": "Debug"
+				}
+			}
 		}
 	],
 	"buildPresets": [
@@ -51,7 +97,7 @@
 		{
 			"name": "linux-ninja-gcc-release",
 			"displayName": "Ninja GCC Release",
-			"configurePreset": "linux-ninja-gcc",
+			"configurePreset": "linux-ninja-gcc-release",
 			"configuration": "Release",
 			"inherits": [
 				"linux-default"
@@ -60,7 +106,7 @@
 		{
 			"name": "linux-ninja-gcc-development",
 			"displayName": "Ninja GCC Development",
-			"configurePreset": "linux-ninja-gcc",
+			"configurePreset": "linux-ninja-gcc-development",
 			"configuration": "Development",
 			"inherits": [
 				"linux-default"
@@ -69,7 +115,7 @@
 		{
 			"name": "linux-ninja-gcc-debug",
 			"displayName": "Ninja GCC Debug",
-			"configurePreset": "linux-ninja-gcc",
+			"configurePreset": "linux-ninja-gcc-debug",
 			"configuration": "Debug",
 			"inherits": [
 				"linux-default"
@@ -87,7 +133,7 @@
 		{
 			"name": "linux-ninja-gcc-unit-debug",
 			"displayName": "Ninja GCC Unit Debug",
-			"configurePreset": "linux-ninja-gcc",
+			"configurePreset": "linux-ninja-gcc-debug",
 			"inherits": [
 				"linux-default"
 			],
@@ -96,7 +142,7 @@
 		{
 			"name": "linux-ninja-gcc-unit-development",
 			"displayName": "Ninja GCC Unit Development",
-			"configurePreset": "linux-ninja-gcc",
+			"configurePreset": "linux-ninja-gcc-development",
 			"inherits": [
 				"linux-default"
 			],
@@ -105,21 +151,22 @@
 		{
 			"name": "linux-ninja-gcc-unit-release",
 			"displayName": "Ninja GCC Unit Release",
-			"configurePreset": "linux-ninja-gcc",
+			"configurePreset": "linux-ninja-gcc-release",
 			"inherits": [
 				"linux-default"
 			],
 			"configuration": "Release"
-		}{% if use_benchmarks %},
+		}
+{% if use_benchmarks %},
 		{
 			"name": "linux-ninja-gcc-bench",
 			"displayName": "Ninja GCC Bench",
-			"configurePreset": "linux-ninja-gcc",
+			"configurePreset": "linux-ninja-gcc-release",
 			"inherits": [
 				"default-bench",
 				"linux-default"
 			],
 			"configuration": "Release"
-		}{% endif %}
-	]
+		}
+		{% endif %}]
 }
