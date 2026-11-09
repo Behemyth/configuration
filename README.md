@@ -35,11 +35,12 @@ Run these commands from the project root:
 
 ```shell
 pdm add --group config "copier>=9.17,<10"
-pdm run copier copy https://github.com/synodic/configuration.git .
+pdm run copier copy --vcs-ref <fork-revision> gh:Behemyth/configuration .
 ```
 
-The HTTPS URL is the canonical source recorded in `.copier-answers.yml`. Omit
-`--vcs-ref` so Copier selects the latest stable PEP 440-compatible tag.
+Replace `<fork-revision>` with a committed revision available in the fork.
+The fork is the source during development; tagged upstream releases are a
+later phase.
 
 Review any collisions with existing files. Do not use `--force` unless replacing
 those files is intentional. Do not use `--trust`; this overlay contains no
@@ -103,9 +104,8 @@ Older consumers may contain this source in `.copier-answers.yml`:
 _src_path: gh:synodic/configuration
 ```
 
-The current Renovate Copier manager accepts standard URLs and SSH-style Git
-paths, but not Copier's `gh:` shortcut. Migrate after a baseline tag exists for
-the consumer's recorded template commit.
+Migrate after a baseline tag exists for the consumer's recorded template
+commit and that commit is reachable from the fork.
 
 Run the following from a clean consumer root. The preview must mention only
 `.copier-answers.yml`:
@@ -118,11 +118,11 @@ copier copy \
   --defaults \
   --exclude "*" \
   --exclude "!.copier-answers.yml" \
-  https://github.com/synodic/configuration.git .
+  gh:Behemyth/configuration .
 ```
 
 Repeat the command without `--pretend` only after that preview is correct.
-Copier then records the full HTTPS source and the matching baseline tag while
+Copier then records the fork source and the matching baseline tag while
 preserving the existing answers. Review and commit this provenance-only change.
 Use the normal update procedure for the next configuration release.
 
@@ -152,28 +152,10 @@ Every release should pass:
 - conflict-artifact checks
 - repeat-update idempotency
 
-## Renovate automation
-
-The hosted Renovate App can update this overlay when a consumer's answers file
-contains:
-
-```yaml
-_src_path: https://github.com/synodic/configuration.git
-_commit: 0.2.0
-```
-
-Renovate uses its native Copier manager to run a full template update and open a
-normal pull request. Consumer repositories should require their ordinary build,
-test, and conflict-marker checks. Copier artifact failures must block the update
-pull request.
-
-Automerge, when enabled, must be scoped to this Copier template only. It must
-not be interpreted as approval to automerge unrelated dependency updates.
-
 ## CMake presets
 
 When `use_cmake_presets` is enabled, the overlay renders presets from one
-identity table in `includes/presets.jinja`. An identity names one
+identity table in `includes/identities.jinja`. An identity names one
 ABI-distinct target: `<os>-<arch>-<toolchain>[-<variant>]`.
 
 | Identity | Host |
@@ -194,18 +176,38 @@ workflow; they produce the same build.
 | Ninja single-config | `<identity>-<configuration>` | `<identity>-<configuration>` | `build/<identity>/<configuration>` |
 
 - Multi-Config configures once; choose the configuration when building. CI and
-  command-line checks use this kind.
+  the all-config workflow use this kind.
 - Single-config fixes the configuration when configuring. Visual Studio Open
-  Folder and VS Code CMake Tools both support it.
+  Folder and VS Code CMake Tools both support it. Each single-config workflow
+  runs configure, build, and test for that configuration.
 - Configurations are `debug`, `development`, and `release`. Development is
   optimized with debug information and assertions enabled. It uses the release
   runtime and Release dependencies on every platform, so it remains
-  ABI-compatible with Release.
+  ABI-compatible with Release. The sanitizer identity supports Debug only.
 - Presets are filtered by host operating system, so each host lists only its own
   identities.
+- Multi-config presets have a workflow preset named `<identity>`; run
+  `cmake --workflow --preset <identity>` to configure once and build/test each
+  supported configuration. Single-config workflows use the corresponding
+  `<identity>-<configuration>` names.
+- Every configure preset uses the committed
+  `tool/cmake/dependencies.cmake` shim. It optionally includes generated,
+  provider-specific search-path glue from
+  `build/<identity>/deps/dependencies.cmake`; it does not select a package
+  manager or replace a real CMake toolchain. Preset listing and configuration
+  do not require Python or CPPython; dependencies must be prepared or
+  otherwise discoverable before packages are required.
+- `porr install` is the explicit environment/dependency setup step. CMake does
+  not invoke Porringer, PDM, or CPPython.
 
-To add an identity, add one entry to `includes/presets.jinja`. Every preset
-kind and configuration is generated from that entry.
+The same source renders `tool/identities.toml`, which CPPython reads to select
+and prepare a host identity. To add an identity, add one entry to
+`includes/identities.jinja`. Every preset kind and configuration is generated
+from that entry.
+
+If CPPython uses a non-default `build-path`, set the absolute CMake cache
+variable `SYNODIC_DEPENDENCIES_ROOT` to that directory. The shim then looks for
+`<root>/<identity>/deps/dependencies.cmake`.
 
 ## Design notes
 
@@ -213,5 +215,5 @@ kind and configuration is generated from that entry.
   `--trust` for normal copy or update operations.
 - A second independent Copier overlay must use a separate answers file and
   explicit `--answers-file` arguments.
-- The sibling `configuration` checkout is not a consumer source. Consumer
-  provenance must use the canonical repository URL, never a local path.
+- Consumer provenance uses the fork source during development, never a local
+  checkout path. The eventual upstream release source is a later decision.

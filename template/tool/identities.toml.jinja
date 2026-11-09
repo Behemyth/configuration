@@ -1,0 +1,13 @@
+{%- from 'includes/identities.jinja' import dependency_build_types, identities, platforms with context %}
+version = 1
+{% for identity in identities %}
+[[identities]]
+name = "{{ identity.name }}"
+os = "{{ platforms[identity.platform].os }}"
+arch = "{{ identity.arch }}"
+compiler = "{{ identity.compiler }}"
+standard-library = "{{ identity.standard_library }}"
+variant = "{{ identity.get('variant', '') }}"
+configurations = [{% for configuration in identity.configurations %}"{{ configuration }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+dependency-build-types = { {% for configuration in identity.configurations %}{{ configuration }} = "{{ dependency_build_types[configuration] }}"{% if not loop.last %}, {% endif %}{% endfor %} }
+{% endfor %}

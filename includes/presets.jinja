@@ -11,105 +11,7 @@
 
   This file sits outside `_subdirectory`, so Copier never copies it.
 -#}
-{%- set configurations = ["Debug", "Development", "Release"] -%}
-
-{%- set platforms = {
-	"windows": {
-		"prefix": "windows",
-		"host": "Windows",
-		"description": "Windows",
-		"warnings": "/W4",
-		"development_compile": "/O2 /Ob2",
-		"development_link": "/DEBUG /INCREMENTAL:NO /OPT:REF /OPT:ICF",
-	},
-	"linux": {
-		"prefix": "linux",
-		"host": "Linux",
-		"description": "Linux",
-		"warnings": "-Wall -Wextra -Wpedantic",
-		"development_compile": "-O2 -g",
-		"development_link": "",
-	},
-	"mac": {
-		"prefix": "macos",
-		"host": "Darwin",
-		"description": "macOS",
-		"warnings": "-Wall -Wextra -Wpedantic",
-		"development_compile": "-O2 -g",
-		"development_link": "",
-	},
-} -%}
-
-{%- set libcxx_link = "-stdlib=libc++" -%}
-{%- set libcxx_mac_link = "-stdlib=libc++ -L$env{LLVM_ROOT}/lib/c++ -Wl,-rpath,$env{LLVM_ROOT}/lib/c++ -L$env{LLVM_ROOT}/lib/unwind -lunwind" -%}
-{%- set sanitize_compile = "-fsanitize=address,undefined -fno-sanitize-recover=all -fno-omit-frame-pointer" -%}
-{%- set sanitize_link = "-fsanitize=address,undefined" -%}
-
-{%- set identities = [
-	{
-		"name": "windows-x64-msvc",
-		"platform": "windows",
-		"display": "Windows x64 MSVC",
-		"architecture": "x64",
-		"c": "cl",
-		"cxx": "cl",
-		"cxx_flags": "",
-		"link_flags": "",
-		"intellisense": "windows-msvc-x64",
-	},
-	{
-		"name": "windows-arm64-msvc",
-		"platform": "windows",
-		"display": "Windows arm64 MSVC",
-		"architecture": "arm64",
-		"c": "cl",
-		"cxx": "cl",
-		"cxx_flags": "",
-		"link_flags": "",
-		"intellisense": "windows-msvc-arm64",
-	},
-	{
-		"name": "linux-x64-clang-libcxx",
-		"platform": "linux",
-		"display": "Linux x64 Clang libc++",
-		"c": "$env{LLVM_ROOT}/bin/clang",
-		"cxx": "$env{LLVM_ROOT}/bin/clang++",
-		"cxx_flags": "-stdlib=libc++",
-		"link_flags": libcxx_link,
-		"intellisense": "linux-clang-x64",
-	},
-	{
-		"name": "linux-arm64-clang-libcxx",
-		"platform": "linux",
-		"display": "Linux arm64 Clang libc++",
-		"c": "$env{LLVM_ROOT}/bin/clang",
-		"cxx": "$env{LLVM_ROOT}/bin/clang++",
-		"cxx_flags": "-stdlib=libc++",
-		"link_flags": libcxx_link,
-		"intellisense": "linux-clang-arm64",
-	},
-	{
-		"name": "linux-x64-clang-libcxx-sanitize",
-		"platform": "linux",
-		"display": "Linux x64 Clang libc++ ASan UBSan",
-		"c": "$env{LLVM_ROOT}/bin/clang",
-		"cxx": "$env{LLVM_ROOT}/bin/clang++",
-		"c_flags": sanitize_compile,
-		"cxx_flags": "-stdlib=libc++ " ~ sanitize_compile,
-		"link_flags": libcxx_link ~ " " ~ sanitize_link,
-		"intellisense": "linux-clang-x64",
-	},
-	{
-		"name": "macos-arm64-clang-libcxx",
-		"platform": "mac",
-		"display": "macOS arm64 Clang libc++",
-		"c": "$env{LLVM_ROOT}/bin/clang",
-		"cxx": "$env{LLVM_ROOT}/bin/clang++",
-		"cxx_flags": "-stdlib=libc++",
-		"link_flags": libcxx_mac_link,
-		"intellisense": "macos-clang-arm64",
-	},
-] -%}
+{%- from 'includes/identities.jinja' import dependency_build_types, identities, platforms with context -%}
 
 {%- macro join_flags(first, second) -%}
 {{ (first ~ " " ~ second) | trim }}
@@ -138,13 +40,12 @@
 			"inherits": [
 				"default"
 			],
-{{ host_condition }}
-{%- if key == "windows" %},
+{{ host_condition }},
 			"cacheVariables": {
-				"CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "${sourceDir}/tool/cmake/platform/common/SetMSVCRuntime.cmake",
+				"CMAKE_PROJECT_TOP_LEVEL_INCLUDES": "{% if key == 'windows' %}${sourceDir}/tool/cmake/platform/common/SetMSVCRuntime.cmake;{% endif %}${sourceDir}/tool/cmake/dependencies.cmake"{% if key == "windows" %},
 				"CMAKE_MSVC_DEBUG_INFORMATION_FORMAT": "$<$<CONFIG:Debug,Development>:ProgramDatabase>"
-			}
 {%- endif %}
+			}
 		},
 		{
 			"name": "{{ base }}-development",
@@ -163,7 +64,7 @@
 				"CMAKE_SHARED_LINKER_FLAGS_DEVELOPMENT": "{{ platform.development_link }}",
 				"CMAKE_MODULE_LINKER_FLAGS_DEVELOPMENT": "{{ platform.development_link }}",
 {%- endif %}
-				"CMAKE_MAP_IMPORTED_CONFIG_DEVELOPMENT": "Release"
+				"CMAKE_MAP_IMPORTED_CONFIG_DEVELOPMENT": "{{ dependency_build_types['Development'] }}"
 			}
 		}
 {%- for identity in identities if identity.platform == key %},
@@ -181,6 +82,7 @@
 			},
 {%- endif %}
 			"cacheVariables": {
+				"SYNODIC_BUILD_IDENTITY": "{{ identity.name }}",
 				"CMAKE_C_COMPILER": "{{ identity.c }}",
 				"CMAKE_CXX_COMPILER": "{{ identity.cxx }}",
 				"CMAKE_C_FLAGS_INIT": "{{ join_flags(platform.warnings, identity.get("c_flags", "")) }}",
@@ -204,15 +106,14 @@
 			"generator": "Ninja Multi-Config",
 			"binaryDir": "${sourceDir}/build/{{ identity.name }}/multi",
 			"inherits": [
-				"cppython",
 				"{{ identity.name }}-toolchain",
 				"{{ base }}-development"
 			],
 			"cacheVariables": {
-				"CMAKE_CONFIGURATION_TYPES": "{{ configurations | join(';') }}"
+				"CMAKE_CONFIGURATION_TYPES": "{{ identity.configurations | join(';') }}"
 			}
 		}
-{%- for configuration in configurations %},
+{%- for configuration in identity.configurations %},
 		{
 			"name": "{{ identity.name }}-{{ configuration | lower }}",
 			"displayName": "{{ identity.display }} {{ configuration }}",
@@ -220,7 +121,6 @@
 			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/build/{{ identity.name }}/{{ configuration | lower }}",
 			"inherits": [
-				"{{ 'cppython-debug' if configuration == 'Debug' else 'cppython-release' }}",
 				"{{ identity.name }}-toolchain"{% if configuration == 'Development' %},
 				"{{ base }}-development"{% endif %}
 			],
@@ -241,7 +141,7 @@
 {{ host_condition }}
 		}
 {%- for identity in identities if identity.platform == key %}
-{%- for configuration in configurations %},
+{%- for configuration in identity.configurations %},
 		{
 			"name": "{{ identity.name }}-multi-{{ configuration | lower }}",
 			"displayName": "{{ identity.display }} {{ configuration }}",
@@ -272,7 +172,7 @@
 {{ host_condition }}
 		}
 {%- for identity in identities if identity.platform == key %}
-{%- for configuration in configurations %},
+{%- for configuration in identity.configurations %},
 		{
 			"name": "{{ identity.name }}-multi-{{ configuration | lower }}",
 			"displayName": "{{ identity.display }} {{ configuration }}",
@@ -291,7 +191,7 @@
 			]
 		}
 {%- endfor %}
-{%- if use_benchmarks %},
+{%- if use_benchmarks and 'Release' in identity.configurations %},
 		{
 			"name": "{{ identity.name }}-bench",
 			"displayName": "{{ identity.display }} Bench",
@@ -303,6 +203,53 @@
 		}
 {%- endif %}
 {%- endfor %}
+	],
+	"workflowPresets": [
+{%- for identity in identities if identity.platform == key %}
+{%- if not loop.first %},{% endif %}
+		{
+			"name": "{{ identity.name }}",
+			"displayName": "{{ identity.display }} All Configurations",
+			"description": "Configure once, then build and test each supported configuration",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "{{ identity.name }}"
+				}
+{%- for configuration in identity.configurations %},
+				{
+					"type": "build",
+					"name": "{{ identity.name }}-multi-{{ configuration | lower }}"
+				},
+				{
+					"type": "test",
+					"name": "{{ identity.name }}-multi-{{ configuration | lower }}"
+				}
+{%- endfor %}
+			]
+		}
+{%- for configuration in identity.configurations %},
+		{
+			"name": "{{ identity.name }}-{{ configuration | lower }}",
+			"displayName": "{{ identity.display }} {{ configuration }}",
+			"description": "Configure, build, and test one single-config build",
+			"steps": [
+				{
+					"type": "configure",
+					"name": "{{ identity.name }}-{{ configuration | lower }}"
+				},
+				{
+					"type": "build",
+					"name": "{{ identity.name }}-{{ configuration | lower }}"
+				},
+				{
+					"type": "test",
+					"name": "{{ identity.name }}-{{ configuration | lower }}"
+				}
+			]
+		}
+{%- endfor %}
+{%- endfor %}
 	]
 }
-{% endmacro -%}
+{%- endmacro -%}

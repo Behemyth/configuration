@@ -1,0 +1,42 @@
+name: Check configuration overlay
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [development]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-and-test:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Python
+        uses: pdm-project/setup-pdm@544d7237314ee09c256785bd360f6b30add38b37 # v4
+        with:
+          python-version: "3.13"
+
+      - name: Install test dependencies
+        run: python -m pip install "copier>=9.17,<10" "ninja>=1.13,<2"
+
+      - name: Install pinned CMake
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=4.5.0-rc2
+          archive="cmake-${version}-linux-x86_64.tar.gz"
+          curl -fsSL "https://github.com/Kitware/CMake/releases/download/v${version}/${archive}" -o "$RUNNER_TEMP/$archive"
+          echo "5d763a6b0b1ab67588734f14734dec1a3957b491750b46804b2a13b9e9e0a75a  $RUNNER_TEMP/$archive" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/$archive" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/cmake-${version}-linux-x86_64/bin" >> "$GITHUB_PATH"
+
+      - name: Render and test presets
+        run: python -m unittest discover -s tests -v
