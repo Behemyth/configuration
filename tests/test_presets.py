@@ -43,7 +43,10 @@ class PresetTemplateTests(unittest.TestCase):
         for benchmarks in (False, True):
             with self.subTest(benchmarks=benchmarks):
                 project = self.render(benchmarks=benchmarks)
-                table = tomllib.loads((project / "tool" / "identities.toml").read_text(encoding="utf-8"))
+                rendered_table = (project / "tool" / "identities.toml").read_text(encoding="utf-8")
+                self.assertTrue(rendered_table.endswith("\n"))
+                self.assertFalse(rendered_table.endswith("\n\n"))
+                table = tomllib.loads(rendered_table)
                 self.assertEqual(table["version"], 1)
                 identities = table["identities"]
                 self.assertEqual(len({identity["name"] for identity in identities}), len(identities))

@@ -10,4 +10,4 @@ standard-library = "{{ identity.standard_library }}"
 variant = "{{ identity.get('variant', '') }}"
 configurations = [{% for configuration in identity.configurations %}"{{ configuration }}"{% if not loop.last %}, {% endif %}{% endfor %}]
 dependency-build-types = { {% for configuration in identity.configurations %}{{ configuration }} = "{{ dependency_build_types[configuration] }}"{% if not loop.last %}, {% endif %}{% endfor %} }
-{% endfor %}
+{% endfor -%}
