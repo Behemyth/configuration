@@ -170,6 +170,43 @@ pull request.
 Automerge, when enabled, must be scoped to this Copier template only. It must
 not be interpreted as approval to automerge unrelated dependency updates.
 
+## CMake presets
+
+When `use_cmake_presets` is enabled, the overlay renders presets from one
+identity table in `includes/presets.jinja`. An identity names one
+ABI-distinct target: `<os>-<arch>-<toolchain>[-<variant>]`.
+
+| Identity | Host |
+|----------|------|
+| `windows-x64-msvc` | Windows |
+| `windows-arm64-msvc` | Windows |
+| `linux-x64-clang-libcxx` | Linux |
+| `linux-arm64-clang-libcxx` | Linux |
+| `linux-x64-clang-libcxx-sanitize` | Linux |
+| `macos-arm64-clang-libcxx` | macOS |
+
+Each identity has two kinds of preset. Use whichever suits your editor or
+workflow; they produce the same build.
+
+| Kind | Configure preset | Build and test presets | Binary directory |
+|------|------------------|------------------------|------------------|
+| Ninja Multi-Config | `<identity>` | `<identity>-multi-<configuration>` | `build/<identity>/multi` |
+| Ninja single-config | `<identity>-<configuration>` | `<identity>-<configuration>` | `build/<identity>/<configuration>` |
+
+- Multi-Config configures once; choose the configuration when building. CI and
+  command-line checks use this kind.
+- Single-config fixes the configuration when configuring. Visual Studio Open
+  Folder and VS Code CMake Tools both support it.
+- Configurations are `debug`, `development`, and `release`. Development is
+  optimized with debug information and assertions enabled. It uses the release
+  runtime and Release dependencies on every platform, so it remains
+  ABI-compatible with Release.
+- Presets are filtered by host operating system, so each host lists only its own
+  identities.
+
+To add an identity, add one entry to `includes/presets.jinja`. Every preset
+kind and configuration is generated from that entry.
+
 ## Design notes
 
 - The overlay uses no Copier tasks or migrations, so consumers do not need

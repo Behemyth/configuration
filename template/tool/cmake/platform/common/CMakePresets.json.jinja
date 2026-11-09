@@ -6,46 +6,15 @@
     "configurePresets": [
         {
             "name": "default",
-            "description": "Base preset for configurations",
+            "description": "Base preset for all identities",
             "hidden": true,
             "inherits": "cppython",
-            "binaryDir": "${sourceDir}/build/${presetName}",
             "cacheVariables": {
                 "BUILD_TESTING": "ON",
-                "CMAKE_CONFIGURATION_TYPES": {
-                    "type": "STRING",
-                    "value": "Debug;Development;Release"
-                },
                 "CMAKE_COMPILE_WARNING_AS_ERROR": {
                     "type": "BOOL",
                     "value": "$env{SYNODIC_STRICT_WARNINGS}"
                 }
-            }
-        },
-        {
-            "name": "default-release",
-            "description": "All single-configuration generators should inherit from this preset",
-            "hidden": true,
-            "inherits": [
-                "cppython-release",
-                "default"
-            ],
-            "binaryDir": "${sourceDir}/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "default-debug",
-            "description": "All single-configuration generators should inherit from this preset",
-            "hidden": true,
-            "inherits": [
-                "cppython-debug",
-                "default"
-            ],
-            "binaryDir": "${sourceDir}/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
             }
         }
     ],
@@ -53,18 +22,6 @@
         {
             "name": "default",
             "hidden": true
-        },
-        {
-            "name": "default-release",
-            "description": "An example build preset for release",
-            "hidden": true,
-            "configurePreset": "default-release"
-        },
-        {
-            "name": "default-debug",
-            "description": "An example build preset for debug",
-            "hidden": true,
-            "configurePreset": "default-debug"
         }
     ],
     "testPresets": [
