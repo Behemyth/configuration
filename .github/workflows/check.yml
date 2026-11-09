@@ -3,8 +3,6 @@ name: Check configuration overlay
 on:
   pull_request:
   merge_group:
-  push:
-    branches: [development]
   workflow_dispatch:
 
 permissions:
