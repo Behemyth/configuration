@@ -209,6 +209,12 @@ If CPPython uses a non-default `build-path`, set the absolute CMake cache
 variable `SYNODIC_DEPENDENCIES_ROOT` to that directory. The shim then looks for
 `<root>/<identity>/deps/dependencies.cmake`.
 
+Clang locates the libc++ `import std` manifest with `-print-file-name`, which
+does not search Homebrew LLVM's `lib/c++` directory. On such hosts, set the
+`SYNODIC_CXX_STDLIB_MODULES_JSON` environment variable to that manifest; the
+presets pass it to `CMAKE_CXX_STDLIB_MODULES_JSON`. When it is unset, CMake
+detects the manifest itself.
+
 ## Design notes
 
 - The overlay uses no Copier tasks or migrations, so consumers do not need
