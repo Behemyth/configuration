@@ -10,6 +10,7 @@ import tomllib
 import unittest
 from pathlib import Path
 
+import yaml
 from copier import run_copy
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -111,6 +112,35 @@ class PresetTemplateTests(unittest.TestCase):
         self.assertTrue((project / "tool" / "identities.toml").is_file())
         self.assertFalse((project / "CMakePresets.json").exists())
         self.assertFalse((project / "tool" / "cmake" / "dependencies.cmake").exists())
+        self.assertFalse((project / ".github" / "workflows" / "native-check.yml").exists())
+
+    def test_native_check_caller_follows_the_identity_table(self) -> None:
+        project = self.render()
+        rendered = (project / ".github" / "workflows" / "native-check.yml").read_text(encoding="utf-8")
+        self.assertTrue(rendered.endswith("\n"))
+        self.assertFalse(rendered.endswith("\n\n"))
+        workflow = yaml.safe_load(rendered)
+        # YAML 1.1 reads the bare key `on` as a boolean.
+        triggers = workflow[True]
+        self.assertEqual(set(triggers), {"pull_request", "merge_group", "workflow_dispatch"})
+        table = tomllib.loads((project / "tool" / "identities.toml").read_text(encoding="utf-8"))
+        self.assertEqual(
+            triggers["workflow_dispatch"]["inputs"]["identity"]["options"],
+            [identity["name"] for identity in table["identities"]],
+        )
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+
+        check = workflow["jobs"]["check"]
+        targeted = workflow["jobs"]["development-check"]
+        self.assertRegex(check["uses"], r"^Behemyth/\.github/\.github/workflows/native-check\.yml@[0-9a-f]{40}$")
+        self.assertEqual(targeted["uses"], check["uses"])
+        # The shared workflow reads identities and the template revision from the project's committed files.
+        self.assertNotIn("native-identities", check["with"])
+        self.assertNotIn("configuration-ref", check["with"])
+        self.assertEqual(
+            targeted["with"],
+            {**check["with"], "targeted": True, "target-identity": "${{ inputs.identity }}"},
+        )
 
     def test_cmake_workflows_load_optional_glue_and_reject_invalid_glue(self) -> None:
         project = self.render()

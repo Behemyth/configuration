@@ -35,3 +35,4 @@ _exclude:
   - "{% if not use_cmake_presets %}CMakePresets.json{% endif %}"
   - "{% if not use_cmake_presets %}tool/cmake/platform/**{% endif %}"
   - "{% if not use_cmake_presets %}tool/cmake/dependencies.cmake{% endif %}"
+  - "{% if not use_cmake_presets %}.github/workflows/native-check.yml{% endif %}"

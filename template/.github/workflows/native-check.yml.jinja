@@ -1,0 +1,50 @@
+{%- from 'includes/identities.jinja' import identities with context -%}
+{#- Pin the shared workflow by commit; update this line to adopt a new revision. -#}
+{%- set native_check = "Behemyth/.github/.github/workflows/native-check.yml@b919cf81d42d2bf3077c8fb71aa43419dc973e7a" -%}
+{#- GitHub Actions does not support YAML merge keys, so both jobs repeat these inputs. -#}
+{%- macro shared_inputs() %}
+      fast-install: pdm install -G native
+      fast-uses-cmake: true
+      fast-command: pdm lock --check && "$CMAKE_BINARY" --list-presets=all
+      native-install: pdm install -G native
+{%- endmacro -%}
+# Rendered by the Synodic configuration overlay; change the template, not this file.
+name: Check Native Status
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+  workflow_dispatch:
+    inputs:
+      identity:
+        description: Native identity to test
+        type: choice
+        required: true
+        options:
+{%- for identity in identities %}
+          - {{ identity.name }}
+{%- endfor %}
+
+permissions:
+  contents: read
+
+concurrency:
+{%- raw %}
+  group: native-check-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.identity && format('-{0}', inputs.identity) || '' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+{%- endraw %}
+
+jobs:
+  check:
+    if: github.event_name != 'workflow_dispatch'
+    uses: {{ native_check }}
+    with:{{ shared_inputs() }}
+
+  development-check:
+    if: github.event_name == 'workflow_dispatch'
+    uses: {{ native_check }}
+    with:{{ shared_inputs() }}
+      targeted: true
+{%- raw %}
+      target-identity: ${{ inputs.identity }}
+{%- endraw %}

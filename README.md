@@ -2,7 +2,7 @@
 
 `synodic/configuration` is a versioned [Copier](https://copier.readthedocs.io/)
 overlay for existing Synodic projects. It supplies shared editor and CMake
-configuration.
+configuration, and the native check workflow for CMake projects.
 
 The overlay does not own a consumer's:
 
@@ -57,6 +57,9 @@ config-update = "copier update --conflict inline --skip-answered ."
 
 Review and commit the Copier dependency, scripts, answers file, and generated
 overlay files as one onboarding change.
+
+A project that enables CMake presets also receives the native check workflow.
+See [Native check workflow](#native-check-workflow) for the wiring it needs.
 
 ## Update the overlay
 
@@ -214,6 +217,33 @@ does not search Homebrew LLVM's `lib/c++` directory. On such hosts, set the
 `SYNODIC_CXX_STDLIB_MODULES_JSON` environment variable to that manifest; the
 presets pass it to `CMAKE_CXX_STDLIB_MODULES_JSON`. When it is unset, CMake
 detects the manifest itself.
+
+## Native check workflow
+
+When `use_cmake_presets` is enabled, the overlay renders
+`.github/workflows/native-check.yml`. It calls the shared native check in
+`Behemyth/.github`, pinned by commit, on pull requests, the merge queue, and
+manual single-identity runs. It has no push or scheduled trigger.
+
+The workflow file contains nothing project-specific:
+
+- The manual run's identity choices come from the identity table.
+- The shared check runs every identity in the project's `tool/identities.toml`.
+- The shared check reads `.copier-answers.yml` to find the template revision
+  the project was rendered from, and verifies the identity table against it.
+
+The project supplies this wiring:
+
+| Requirement | Purpose |
+|-------------|---------|
+| A `native` dependency group | Installed with `pdm install -G native`. It provides CPPython and the build tools. |
+| A `prepare` PDM script | Prepares native dependencies for the identity in `CPPYTHON_IDENTITY`, for example `cppython install [test]`. |
+| A committed `pdm.lock` | The fast stage runs `pdm lock --check`. |
+| A workflow preset per identity | The overlay's presets provide these. |
+| `tool/first-party.toml` (optional) | Pins Synodic packages that no remote serves yet. See the shared check's README. |
+
+To adopt a new revision of the shared check, change the pinned commit in
+`template/.github/workflows/native-check.yml.jinja`, then update each project.
 
 ## Design notes
 
