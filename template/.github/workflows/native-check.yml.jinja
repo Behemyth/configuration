@@ -1,6 +1,6 @@
 {%- from 'includes/identities.jinja' import identities with context -%}
 {#- Pin the shared workflow by commit; update this line to adopt a new revision. -#}
-{%- set native_check = "Behemyth/.github/.github/workflows/native-check.yml@41a21464b96ad5b8fa0f409c9e80e69eca38aba0" -%}
+{%- set native_check = "Behemyth/.github/.github/workflows/native-check.yml@507540e644ed9593ae3aaed1c71adcb568d87fd0" -%}
 {#- GitHub Actions does not support YAML merge keys, so both jobs repeat these inputs. -#}
 {%- macro shared_inputs() %}
       fast-install: pdm install -G native

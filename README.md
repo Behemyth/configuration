@@ -241,6 +241,7 @@ The project supplies this wiring:
 | A committed `pdm.lock` | The fast stage runs `pdm lock --check`. |
 | A workflow preset per identity | The overlay's presets provide these. |
 | `tool/first-party.toml` (optional) | Pins Synodic packages that no remote serves yet. See the shared check's README. |
+| `tool/native-setup.py` (optional) | Provides host prerequisites that a runner image lacks. See the shared check's README. |
 
 To adopt a new revision of the shared check, change the pinned commit in
 `template/.github/workflows/native-check.yml.jinja`, then update each project.
